@@ -26,13 +26,15 @@ Brauzer: [http://localhost:3001](http://localhost:3001) (backend 3000 bilan zidd
 
 Supabase ulanmagan bo‘lsa ham ilova **namoyish (mock)** ma’lumotlar bilan ishlaydi — sahifalar bo‘sh qolmaydi.
 
-### Vercel
+### Vercel (muhim)
 
-1. **Root Directory:** `mini-app`
-2. **Framework Preset:** Next.js (avtomatik)
-3. Environment: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+1. **Settings → General → Root Directory:** `mini-app` (loyiha ildizi emas!)
+2. **Settings → General → Build & Development Settings:**
+   - **Framework Preset:** Next.js
+   - **Output Directory** maydonini **bo‘sh qoldiring** (Next.js o‘zi `.next` ishlatadi). Agar u yerda `public` yoki `dist` turgan bo‘lsa — **o‘chirib** saqlang.
+3. **Environment Variables:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-Ildizdagi `vercel.json` faqat `install`/`build` buyruqlarini beradi; aniq sozlama uchun Vercelda **Root Directory = mini-app** tavsiya etiladi.
+`mini-app/vercel.json` faqat `framework: nextjs` ni bildiradi. Repozitoriy **ildizidan** deploy qilsangiz va Root Directory bo‘sh qolsa, Vercel `public` qidiradi — xato chiqadi.
 
 ## Backend (bot)
 
