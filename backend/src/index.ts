@@ -17,7 +17,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 const BOT_TOKEN = process.env.BOT_TOKEN ?? "";
 const JWT_SECRET = process.env.JWT_SECRET ?? "dev-secret-change-me";
-const MINI_APP_URL = process.env.MINI_APP_URL ?? "http://localhost:5173";
+const MINI_APP_URL = process.env.MINI_APP_URL ?? "http://localhost:3001";
 const PUBLIC_API_BASE = (process.env.PUBLIC_API_BASE_URL ?? `http://localhost:${PORT}`).replace(/\/$/, "");
 const WEBHOOK_URL = process.env.WEBHOOK_URL?.replace(/\/$/, "");
 

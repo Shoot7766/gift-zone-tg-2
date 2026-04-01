@@ -2,40 +2,47 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { ProductCard } from "@/components/product/ProductCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ProductCardSkeleton } from "@/components/ui/Skeleton";
 import { useSupabase } from "@/hooks/useSupabase";
 import { useTelegramUserId } from "@/hooks/useTelegramUser";
-import { fetchFavoriteIds, fetchFavoriteProducts, toggleFavorite } from "@/services/favorites";
+import { fetchFavoriteProducts, toggleFavorite } from "@/services/favorites";
 
 export default function FavoritesPageClient() {
   const supabase = useSupabase();
   const tgId = useTelegramUserId();
   const qc = useQueryClient();
+  const sbKey = supabase ? "sb" : "mock";
 
   const q = useQuery({
-    queryKey: ["favorites", tgId, supabase ? "sb" : "mock"],
+    queryKey: ["favorites", tgId, sbKey],
     queryFn: () => fetchFavoriteProducts(supabase, tgId),
+    staleTime: 60_000,
   });
 
-  const favIdsQ = useQuery({
-    queryKey: ["fav-ids", tgId],
-    queryFn: () => fetchFavoriteIds(supabase, tgId),
-  });
+  const favSet = useMemo(() => new Set((q.data ?? []).map((p) => p.id)), [q.data]);
 
-  const favSet = useMemo(() => new Set(favIdsQ.data ?? []), [favIdsQ.data]);
+  const onSave = useCallback(
+    async (productId: string) => {
+      await toggleFavorite(supabase, tgId, productId);
+      void qc.invalidateQueries({ queryKey: ["fav-ids"] });
+      void qc.invalidateQueries({ queryKey: ["favorites"] });
+    },
+    [supabase, tgId, qc]
+  );
 
-  const onSave = async (productId: string) => {
-    await toggleFavorite(supabase, tgId, productId);
-    void qc.invalidateQueries({ queryKey: ["fav-ids"] });
-    void qc.invalidateQueries({ queryKey: ["favorites"] });
-  };
+  const handleToggleSave = useCallback(
+    (productId: string) => {
+      void onSave(productId);
+    },
+    [onSave]
+  );
 
   return (
     <div className="space-y-4 pb-4">
-      <h1 className="text-xl font-black text-white">Saqlanganlar</h1>
+      <h1 className="text-xl font-black tracking-tight text-white">Saqlanganlar</h1>
       <Link href="/products" className="text-xs font-semibold text-gz-accent2">
         Mahsulotlarga o‘tish →
       </Link>
@@ -50,7 +57,7 @@ export default function FavoritesPageClient() {
         <EmptyState
           emoji="⭐"
           title="Saqlangan mahsulotlar yo‘q"
-          hint="👉 Yoqtirgan mahsulotlaringizni saqlab qo‘ying."
+          hint="Yoqtirgan mahsulotlaringizni yulduzcha bilan saqlang."
         />
       ) : (
         <div className="grid grid-cols-2 gap-3">
@@ -59,7 +66,7 @@ export default function FavoritesPageClient() {
               key={p.id}
               product={p}
               saved={favSet.has(p.id)}
-              onToggleSave={() => void onSave(p.id)}
+              onToggleSave={handleToggleSave}
             />
           ))}
         </div>

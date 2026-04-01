@@ -121,6 +121,19 @@ export const MOCK_PRODUCTS: ProductWithShop[] = [
     created_at: new Date().toISOString(),
     shops: MOCK_SHOPS[2],
   },
+  {
+    id: "p7",
+    name: "Tug‘ilgan kun torti va sham",
+    description: "Buyurtma bo‘yicha dizayn.",
+    price: 280000,
+    image_url: img(1558636428),
+    category: "Tug‘ilgan kun",
+    shop_id: "m1",
+    is_active: true,
+    created_at: new Date().toISOString(),
+    badge: "star",
+    shops: MOCK_SHOPS[0],
+  },
 ];
 
 export const MOCK_CATEGORIES = [
@@ -131,4 +144,5 @@ export const MOCK_CATEGORIES = [
   "Uy uchun",
   "O‘simliklar",
   "Shaxsiylashtirish",
+  "Tug‘ilgan kun",
 ];

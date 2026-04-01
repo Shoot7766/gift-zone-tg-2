@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ProductWithShop } from "@/types/database";
-import { fetchProductById } from "./products";
+import { fetchProductsByIds } from "./products";
 
 const LS_KEY = "gz_favorites_v2";
 
@@ -42,12 +42,7 @@ export async function fetchFavoriteProducts(
   telegramId: number | null
 ): Promise<ProductWithShop[]> {
   const ids = await fetchFavoriteIds(client, telegramId);
-  const out: ProductWithShop[] = [];
-  for (const id of ids) {
-    const p = await fetchProductById(client, id);
-    if (p) out.push(p);
-  }
-  return out;
+  return fetchProductsByIds(client, ids);
 }
 
 export async function toggleFavorite(

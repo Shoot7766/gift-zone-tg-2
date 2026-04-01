@@ -3,6 +3,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
+import { useCallback, useMemo } from "react";
 import { ProductCard } from "@/components/product/ProductCard";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -32,9 +33,25 @@ export default function ShopDetailClient({ id }: { id: string }) {
   const favQ = useQuery({
     queryKey: ["fav-ids", tgId],
     queryFn: () => fetchFavoriteIds(supabase, tgId),
+    staleTime: 120_000,
   });
 
-  const favSet = new Set(favQ.data ?? []);
+  const favSet = useMemo(() => new Set(favQ.data ?? []), [favQ.data]);
+
+  const onSave = useCallback(
+    async (productId: string) => {
+      await toggleFavorite(supabase, tgId, productId);
+      void qc.invalidateQueries({ queryKey: ["fav-ids"] });
+    },
+    [supabase, tgId, qc]
+  );
+
+  const handleToggleSave = useCallback(
+    (productId: string) => {
+      void onSave(productId);
+    },
+    [onSave]
+  );
 
   const s = shopQ.data;
 
@@ -104,10 +121,7 @@ export default function ShopDetailClient({ id }: { id: string }) {
                 key={p.id}
                 product={p}
                 saved={favSet.has(p.id)}
-                onToggleSave={async () => {
-                  await toggleFavorite(supabase, tgId, p.id);
-                  void qc.invalidateQueries({ queryKey: ["fav-ids"] });
-                }}
+                onToggleSave={handleToggleSave}
               />
             ))}
           </div>

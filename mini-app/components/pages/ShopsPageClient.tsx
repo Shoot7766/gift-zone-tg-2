@@ -10,18 +10,21 @@ import { fetchApprovedShops } from "@/services/shops";
 
 export default function ShopsPageClient() {
   const supabase = useSupabase();
+  const sbKey = supabase ? "sb" : "mock";
+
   const q = useQuery({
-    queryKey: ["shops", supabase ? "sb" : "mock"],
-    queryFn: () => fetchApprovedShops(supabase),
+    queryKey: ["shops", sbKey],
+    queryFn: () => fetchApprovedShops(supabase, { limit: 48 }),
+    staleTime: 90_000,
   });
 
   const list = q.data ?? [];
 
   return (
-    <div className="space-y-4 pb-4">
+    <div className="space-y-5 pb-6">
       <div>
-        <h1 className="text-xl font-black text-white">Do‘konlar</h1>
-        <p className="text-sm text-gz-muted">Tasdiqlangan va ishonchli sotuvchilar.</p>
+        <h1 className="text-xl font-black tracking-tight text-white">Do‘konlar</h1>
+        <p className="mt-1 text-sm text-gz-muted">Tasdiqlangan va ishonchli sotuvchilar.</p>
       </div>
       <Link href="/" className="text-xs font-semibold text-gz-accent2">
         ← Bosh sahifa
@@ -36,8 +39,8 @@ export default function ShopsPageClient() {
       ) : list.length === 0 ? (
         <EmptyState
           emoji="🏪"
-          title="Hozircha do‘konlar mavjud emas"
-          hint="Keyinroq yana kiring — yangi do‘konlar qo‘shilmoqda."
+          title="Do‘konlar hozircha yo‘q"
+          hint="Keyinroq kiring — yangi do‘konlar qo‘shilmoqda."
         />
       ) : (
         <div className="space-y-3">

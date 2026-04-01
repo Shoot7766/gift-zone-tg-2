@@ -64,7 +64,7 @@ export function authRouter(opts: { botToken: string; jwtSecret: string }) {
     const telegramId = BigInt(v.user.id);
     const user = await prisma.user.findUnique({ where: { telegramId } });
 
-    if (!user?.phoneNumber || user.role == null) {
+    if (user?.role == null) {
       res.status(403).json({ error: "registration_incomplete" });
       return;
     }

@@ -1,76 +1,108 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { SearchShortcut } from "@/components/home/SearchShortcut";
 import { ProductCard } from "@/components/product/ProductCard";
-import { ShopCard } from "@/components/shop/ShopCard";
 import { Button } from "@/components/ui/Button";
 import { ProductCardSkeleton } from "@/components/ui/Skeleton";
 import { useSupabase } from "@/hooks/useSupabase";
 import { useTelegramUserId } from "@/hooks/useTelegramUser";
 import { MOCK_CATEGORIES } from "@/lib/mock-data";
 import { fetchFavoriteIds, toggleFavorite } from "@/services/favorites";
-import { fetchFeaturedProducts, fetchProducts } from "@/services/products";
-import { fetchApprovedShops } from "@/services/shops";
+import { fetchHomeFeed } from "@/services/home";
+import type { ProductWithShop } from "@/types/database";
+
+const HomeBottomSections = dynamic(
+  () => import("./HomeBottomSections").then((m) => ({ default: m.HomeBottomSections })),
+  {
+    loading: () => (
+      <div className="space-y-4 pb-2">
+        <div className="h-40 animate-pulse rounded-3xl bg-white/5" />
+        <div className="h-56 animate-pulse rounded-3xl bg-white/5" />
+      </div>
+    ),
+  }
+);
+
+function useSupabaseKey(s: ReturnType<typeof useSupabase>) {
+  return s ? "sb" : "mock";
+}
 
 export function HomeView() {
   const supabase = useSupabase();
+  const sbKey = useSupabaseKey(supabase);
   const tgId = useTelegramUserId();
   const qc = useQueryClient();
 
-  const productsQ = useQuery({
-    queryKey: ["home-products", supabase ? "sb" : "mock"],
-    queryFn: () => fetchFeaturedProducts(supabase, 10),
-  });
-
-  const shopsQ = useQuery({
-    queryKey: ["home-shops", supabase ? "sb" : "mock"],
-    queryFn: () => fetchApprovedShops(supabase).then((s) => s.slice(0, 6)),
-  });
-
-  const trendingQ = useQuery({
-    queryKey: ["home-trending"],
-    queryFn: () => fetchProducts(supabase, { limit: 6 }),
+  const homeQ = useQuery({
+    queryKey: ["home-feed", sbKey],
+    queryFn: () => fetchHomeFeed(supabase),
+    staleTime: 90_000,
   });
 
   const favQ = useQuery({
     queryKey: ["fav-ids", tgId],
     queryFn: () => fetchFavoriteIds(supabase, tgId),
+    staleTime: 120_000,
   });
+
+  const pool = useMemo(() => homeQ.data?.pool ?? [], [homeQ.data?.pool]);
+  const shops = useMemo(() => homeQ.data?.shops ?? [], [homeQ.data?.shops]);
+
+  const trending = useMemo(() => pool.slice(0, 4), [pool]);
+
+  const featured = useMemo(() => {
+    const f = pool.filter((p) => p.shops?.is_featured);
+    const src = f.length >= 4 ? f : pool;
+    return src.slice(0, 4);
+  }, [pool]);
+
+  const birthday = useMemo(() => {
+    const b = pool.filter((p) => (p.category ?? "").toLowerCase().includes("tug"));
+    const src = b.length >= 4 ? b : pool;
+    return src.slice(0, 4);
+  }, [pool]);
 
   const favSet = useMemo(() => new Set(favQ.data ?? []), [favQ.data]);
 
-  const onSave = async (productId: string) => {
-    await toggleFavorite(supabase, tgId, productId);
-    void qc.invalidateQueries({ queryKey: ["fav-ids"] });
-  };
+  const onSave = useCallback(
+    async (productId: string) => {
+      await toggleFavorite(supabase, tgId, productId);
+      void qc.invalidateQueries({ queryKey: ["fav-ids"] });
+    },
+    [supabase, tgId, qc]
+  );
 
-  const birthday = productsQ.data?.filter((p) =>
-    (p.category ?? "").toLowerCase().includes("tug")
+  const handleToggleSave = useCallback(
+    (productId: string) => {
+      void onSave(productId);
+    },
+    [onSave]
   );
 
   return (
     <div className="space-y-8 pb-6">
-      <section className="relative overflow-hidden rounded-3xl border border-gz-border bg-gradient-to-br from-emerald-900/40 via-gz-surface to-sky-900/35 p-5 shadow-card">
-        <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-emerald-400/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-16 left-0 h-44 w-44 rounded-full bg-sky-500/15 blur-3xl" />
-        <p className="text-xs font-bold uppercase tracking-widest text-gz-accent">Gift Zone</p>
-        <h1 className="mt-2 text-2xl font-black leading-tight text-white">
+      <section className="relative overflow-hidden rounded-3xl border border-gz-border bg-gradient-to-br from-emerald-950/50 via-gz-surface to-sky-950/40 p-6 shadow-[0_20px_50px_-20px_rgba(16,185,129,0.35)]">
+        <div className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-emerald-400/15 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 left-0 h-48 w-48 rounded-full bg-sky-500/10 blur-3xl" />
+        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-gz-accent">Gift Zone</p>
+        <h1 className="mt-2 text-2xl font-black leading-tight tracking-tight text-white md:text-[1.65rem]">
           🎁 Sovg‘a topish endi ancha oson
         </h1>
-        <p className="mt-2 max-w-md text-sm text-gz-muted">
+        <p className="mt-3 max-w-md text-sm leading-relaxed text-gz-muted">
           Kerakli mahsulotlarni tez toping, do‘konlar bilan bog‘laning va buyurtma bering.
         </p>
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-5 flex flex-wrap gap-2">
           <Link href="/ai">
-            <Button type="button" className="py-2.5 text-sm">
+            <Button type="button" className="py-2.5 text-sm font-bold shadow-lg shadow-emerald-900/30">
               🤖 AI orqali topish
             </Button>
           </Link>
           <Link href="/products">
-            <Button type="button" variant="secondary" className="py-2.5 text-sm">
+            <Button type="button" variant="secondary" className="py-2.5 text-sm font-bold">
               🛍 Mahsulotlarni ko‘rish
             </Button>
           </Link>
@@ -87,7 +119,7 @@ export function HomeView() {
             <Link
               key={c}
               href={`/products?category=${encodeURIComponent(c)}`}
-              className="shrink-0 rounded-2xl border border-gz-border bg-gz-elevated px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/5"
+              className="shrink-0 rounded-2xl border border-gz-border bg-gz-elevated px-4 py-2.5 text-sm font-semibold text-white ring-1 ring-white/5 transition hover:border-emerald-500/30"
             >
               {c}
             </Link>
@@ -95,116 +127,94 @@ export function HomeView() {
         </div>
       </section>
 
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">🔥 Bugun mashhur</h2>
-          <Link href="/products" className="text-xs font-semibold text-gz-accent2">
-            Hammasi →
-          </Link>
-        </div>
-        {trendingQ.isLoading ? (
-          <div className="grid grid-cols-2 gap-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <ProductCardSkeleton key={i} />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {(trendingQ.data ?? []).slice(0, 4).map((p) => (
-              <ProductCard
-                key={p.id}
-                product={p}
-                saved={favSet.has(p.id)}
-                onToggleSave={() => void onSave(p.id)}
-              />
-            ))}
-          </div>
-        )}
-      </section>
+      <HomeProductSection
+        title="🔥 Bugun mashhur"
+        href="/products"
+        linkLabel="Hammasi →"
+        loading={homeQ.isLoading}
+        products={trending}
+        favSet={favSet}
+        onToggleSave={handleToggleSave}
+      />
 
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">💝 Tavsiya etilgan sovg‘alar</h2>
-          <Link href="/products" className="text-xs font-semibold text-gz-accent2">
-            Ko‘proq →
-          </Link>
-        </div>
-        {productsQ.isLoading ? (
-          <div className="grid grid-cols-2 gap-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <ProductCardSkeleton key={i} />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {(productsQ.data ?? []).map((p) => (
-              <ProductCard
-                key={p.id}
-                product={p}
-                saved={favSet.has(p.id)}
-                onToggleSave={() => void onSave(p.id)}
-              />
-            ))}
-          </div>
-        )}
-      </section>
+      <HomeProductSection
+        title="💝 Tavsiya etilgan sovg‘alar"
+        href="/products"
+        linkLabel="Ko‘proq →"
+        loading={homeQ.isLoading}
+        products={featured}
+        favSet={favSet}
+        onToggleSave={handleToggleSave}
+      />
 
       <section>
         <h2 className="mb-3 text-lg font-bold text-white">🎉 Tug‘ilgan kun uchun</h2>
-        <div className="grid grid-cols-2 gap-3">
-          {(birthday?.length ? birthday : productsQ.data ?? [])
-            .slice(0, 4)
-            .map((p) => (
+        {homeQ.isLoading ? (
+          <div className="grid grid-cols-2 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <ProductCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            {birthday.map((p) => (
               <ProductCard
                 key={p.id}
                 product={p}
                 saved={favSet.has(p.id)}
-                onToggleSave={() => void onSave(p.id)}
+                onToggleSave={handleToggleSave}
               />
             ))}
-        </div>
+          </div>
+        )}
       </section>
 
-      <section className="rounded-3xl border border-gz-border bg-gradient-to-r from-violet-900/30 to-emerald-900/20 p-4">
-        <h3 className="text-base font-bold text-white">🎁 Chegirma oynasi</h3>
-        <p className="mt-1 text-sm text-gz-muted">
-          VIP do‘konlarda ertaga maxsus aksiya. Hoziroq saqlab qo‘ying!
-        </p>
-        <Link href="/shops" className="mt-3 inline-block">
-          <Button type="button" variant="secondary" className="py-2 text-xs">
-            Do‘konlarni ko‘rish
-          </Button>
-        </Link>
-      </section>
-
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">🏪 Top do‘konlar</h2>
-          <Link href="/shops" className="text-xs font-semibold text-gz-accent2">
-            Barchasi →
-          </Link>
-        </div>
-        <div className="space-y-3">
-          {(shopsQ.data ?? []).map((s) => (
-            <ShopCard key={s.id} shop={s} />
-          ))}
-        </div>
-      </section>
-
-      <section className="grid grid-cols-3 gap-2 text-center text-[11px] text-gz-muted">
-        <div className="rounded-2xl border border-gz-border bg-gz-surface p-3">
-          <div className="text-lg">⚡</div>
-          <div className="mt-1 font-semibold text-white">Tez yetkazish</div>
-        </div>
-        <div className="rounded-2xl border border-gz-border bg-gz-surface p-3">
-          <div className="text-lg">🛡</div>
-          <div className="mt-1 font-semibold text-white">Tekshirilgan do‘konlar</div>
-        </div>
-        <div className="rounded-2xl border border-gz-border bg-gz-surface p-3">
-          <div className="text-lg">💬</div>
-          <div className="mt-1 font-semibold text-white">To‘g‘ridan-to‘g‘ri aloqa</div>
-        </div>
-      </section>
+      <HomeBottomSections shops={shops} />
     </div>
   );
 }
+
+const HomeProductSection = ({
+  title,
+  href,
+  linkLabel,
+  loading,
+  products,
+  favSet,
+  onToggleSave,
+}: {
+  title: string;
+  href: string;
+  linkLabel: string;
+  loading: boolean;
+  products: ProductWithShop[];
+  favSet: Set<string>;
+  onToggleSave: (id: string) => void;
+}) => (
+  <section>
+    <div className="mb-3 flex items-center justify-between">
+      <h2 className="text-lg font-bold text-white">{title}</h2>
+      <Link href={href} className="text-xs font-semibold text-gz-accent2">
+        {linkLabel}
+      </Link>
+    </div>
+    {loading ? (
+      <div className="grid grid-cols-2 gap-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <ProductCardSkeleton key={i} />
+        ))}
+      </div>
+    ) : (
+      <div className="grid grid-cols-2 gap-3">
+        {products.map((p) => (
+          <ProductCard
+            key={p.id}
+            product={p}
+            saved={favSet.has(p.id)}
+            onToggleSave={onToggleSave}
+          />
+        ))}
+      </div>
+    )}
+  </section>
+);

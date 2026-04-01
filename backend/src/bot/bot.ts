@@ -4,12 +4,15 @@ import type { Role } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import {
   MSG_START,
-  MSG_AFTER_PHONE,
+  MSG_AFTER_CONTACT,
   MSG_REG_SUCCESS,
   MSG_RETURNING,
+  MSG_CHANGE_ROLE,
+  MSG_ROLE_UPDATED,
   MSG_WRONG_PHONE_INPUT,
   MSG_ROLE_MISSING,
   MSG_TECH_ERROR,
+  MSG_USE_PRIVATE_CHAT,
   BTN_OPEN_APP,
   BTN_SHARE_PHONE,
   ROLE_CUSTOMER,
@@ -25,14 +28,59 @@ type BotOptions = {
   miniAppUrl: string;
 };
 
-function webAppButton(url: string) {
-  return Markup.keyboard([[Markup.button.webApp(BTN_OPEN_APP, url)]]).resize();
+/**
+ * Matnda havola chiqarmaymiz. HTTPS + ochiq domen bo‘lsa faqat Web App tugmasi.
+ * Localhost/http da Telegram Web App tug‘masini qabul qilmaydi — matn + nusxa havola.
+ */
+async function replyOpenMiniApp(
+  ctx: { reply: (text: string, extra?: object) => Promise<unknown> },
+  bodyText: string,
+  miniAppUrl: string
+) {
+  let parsed: URL;
+  try {
+    parsed = new URL(miniAppUrl);
+  } catch {
+    await ctx.reply(
+      `${bodyText}\n\n⚠️ MINI_APP_URL sozlanmagan.`,
+      Markup.removeKeyboard()
+    );
+    return;
+  }
+
+  const host = parsed.hostname;
+  const isLocal =
+    host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host.endsWith(".local");
+  const isHttps = parsed.protocol === "https:";
+
+  if (isHttps && !isLocal) {
+    await ctx.reply(
+      bodyText,
+      Markup.keyboard([[Markup.button.webApp(BTN_OPEN_APP, miniAppUrl)]]).resize()
+    );
+    return;
+  }
+
+  await ctx.reply(
+    bodyText + miniAppDevHint(miniAppUrl) + `\n\n🔗 ${miniAppUrl}`,
+    Markup.removeKeyboard()
+  );
+}
+
+function miniAppDevHint(url: string): string {
+  try {
+    const h = new URL(url).hostname;
+    if (h === "localhost" || h === "127.0.0.1") {
+      return "\n\n📱 Mini App tugmasi uchun MINI_APP_URL da HTTPS manzil (masalan Vercel) kerak.";
+    }
+  } catch {
+    return "";
+  }
+  return "";
 }
 
 function phoneKeyboard() {
-  return Markup.keyboard([
-    [Markup.button.contactRequest(BTN_SHARE_PHONE)],
-  ]).resize();
+  return Markup.keyboard([[Markup.button.contactRequest(BTN_SHARE_PHONE)]]).resize();
 }
 
 function roleInlineKeyboard() {
@@ -51,20 +99,44 @@ async function upsertUserFromTelegram(ctx: {
   const from = ctx.from;
   if (!from) return null;
   const telegramId = BigInt(from.id);
-  return prisma.user.upsert({
-    where: { telegramId },
-    create: {
-      telegramId,
-      username: from.username ?? null,
-      firstName: from.first_name ?? null,
-      lastName: from.last_name ?? null,
-    },
-    update: {
-      username: from.username ?? null,
-      firstName: from.first_name ?? null,
-      lastName: from.last_name ?? null,
-    },
-  });
+  const run = () =>
+    prisma.user.upsert({
+      where: { telegramId },
+      create: {
+        telegramId,
+        username: from.username ?? null,
+        firstName: from.first_name ?? null,
+        lastName: from.last_name ?? null,
+      },
+      update: {
+        username: from.username ?? null,
+        firstName: from.first_name ?? null,
+        lastName: from.last_name ?? null,
+      },
+    });
+  return withDbRetry(run);
+}
+
+async function withDbRetry<T>(fn: () => Promise<T>, attempts = 4): Promise<T> {
+  let last: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      last = e;
+      const msg = e instanceof Error ? e.message : String(e);
+      const busy =
+        msg.includes("SQLITE_BUSY") ||
+        msg.includes("database is locked") ||
+        (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2034");
+      if (busy && i < attempts - 1) {
+        await new Promise((r) => setTimeout(r, 80 * (i + 1)));
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw last;
 }
 
 function parseRoleFromCallback(data: string): Role | null {
@@ -83,16 +155,23 @@ export function createBot({ token, miniAppUrl }: BotOptions) {
         await ctx.reply(MSG_TECH_ERROR);
         return;
       }
-      await upsertUserFromTelegram(ctx);
-      const telegramId = BigInt(ctx.from.id);
-      const user = await prisma.user.findUnique({ where: { telegramId } });
-
-      if (user?.phoneNumber && user.role != null) {
-        await ctx.reply(MSG_RETURNING, webAppButton(miniAppUrl));
+      if (ctx.chat?.type !== "private") {
+        await ctx.reply(MSG_USE_PRIVATE_CHAT);
         return;
       }
 
-      await ctx.reply(MSG_START, phoneKeyboard());
+      await upsertUserFromTelegram(ctx);
+      const telegramId = BigInt(ctx.from.id);
+      const user = await withDbRetry(() =>
+        prisma.user.findUnique({ where: { telegramId } })
+      );
+
+      if (user?.role != null) {
+        await replyOpenMiniApp(ctx, MSG_RETURNING, miniAppUrl);
+        return;
+      }
+
+      await ctx.reply(MSG_START, roleInlineKeyboard());
     } catch (e) {
       console.error("[bot /start]", e);
       if (e instanceof Prisma.PrismaClientKnownRequestError) {
@@ -105,7 +184,29 @@ export function createBot({ token, miniAppUrl }: BotOptions) {
     }
   });
 
+  bot.command(["rol", "role"], async (ctx) => {
+    try {
+      if (!ctx.from?.id) {
+        await ctx.reply(MSG_TECH_ERROR);
+        return;
+      }
+      if (ctx.chat?.type !== "private") {
+        await ctx.reply(MSG_USE_PRIVATE_CHAT);
+        return;
+      }
+
+      await ctx.reply(MSG_CHANGE_ROLE, roleInlineKeyboard());
+    } catch (e) {
+      console.error("[bot /rol]", e);
+      await ctx.reply(MSG_TECH_ERROR);
+    }
+  });
+
   bot.on("contact", async (ctx) => {
+    if (ctx.chat?.type !== "private") {
+      await ctx.reply(MSG_USE_PRIVATE_CHAT);
+      return;
+    }
     const contact = ctx.message.contact;
     if (!contact?.phone_number) {
       await ctx.reply(MSG_WRONG_PHONE_INPUT, phoneKeyboard());
@@ -113,28 +214,39 @@ export function createBot({ token, miniAppUrl }: BotOptions) {
     }
 
     const telegramId = BigInt(ctx.from!.id);
-    await prisma.user.update({
-      where: { telegramId },
-      data: { phoneNumber: contact.phone_number },
-    });
+    const updated = await withDbRetry(() =>
+      prisma.user.update({
+        where: { telegramId },
+        data: { phoneNumber: contact.phone_number },
+      })
+    );
 
-    // Telegram bitta xabarda inline klaviatura bilan remove_keyboard ni birlashtira olmaydi.
-    // Avval telefon tugmalarini yopamiz, keyin rol uchun inline tugmalar yuboramiz.
-    await ctx.reply(MSG_AFTER_PHONE, Markup.removeKeyboard());
-    await ctx.reply("Quyidagi tugmalardan birini bosing:", roleInlineKeyboard());
-  });
+    await ctx.reply("Rahmat!", Markup.removeKeyboard());
 
-  bot.on("text", async (ctx) => {
-    const telegramId = BigInt(ctx.from!.id);
-    const user = await prisma.user.findUnique({ where: { telegramId } });
-
-    if (user?.phoneNumber && user.role != null) {
-      await ctx.reply(MSG_RETURNING, webAppButton(miniAppUrl));
+    if (updated.role != null) {
+      await replyOpenMiniApp(ctx, MSG_RETURNING, miniAppUrl);
       return;
     }
 
-    if (!user?.phoneNumber) {
-      await ctx.reply(MSG_WRONG_PHONE_INPUT, phoneKeyboard());
+    await ctx.reply(MSG_AFTER_CONTACT, roleInlineKeyboard());
+  });
+
+  bot.on("text", async (ctx) => {
+    if (ctx.chat?.type !== "private") {
+      return;
+    }
+    const entities = ctx.message.entities;
+    if (entities?.[0]?.type === "bot_command" && entities[0].offset === 0) {
+      return;
+    }
+
+    const telegramId = BigInt(ctx.from!.id);
+    const user = await withDbRetry(() =>
+      prisma.user.findUnique({ where: { telegramId } })
+    );
+
+    if (user?.role != null) {
+      await replyOpenMiniApp(ctx, MSG_RETURNING, miniAppUrl);
       return;
     }
 
@@ -155,22 +267,38 @@ export function createBot({ token, miniAppUrl }: BotOptions) {
     }
 
     const telegramId = BigInt(ctx.from!.id);
-    const user = await prisma.user.findUnique({ where: { telegramId } });
+    const user = await withDbRetry(() =>
+      prisma.user.findUnique({ where: { telegramId } })
+    );
 
-    if (!user?.phoneNumber) {
+    if (!user) {
       await ctx.answerCbQuery();
-      await ctx.reply(MSG_WRONG_PHONE_INPUT, phoneKeyboard());
       return;
     }
 
-    await prisma.user.update({
-      where: { telegramId },
-      data: { role },
-    });
+    const hadRole = user.role != null;
 
     await ctx.answerCbQuery();
+
+    try {
+      await withDbRetry(() =>
+        prisma.user.update({
+          where: { telegramId },
+          data: { role },
+        })
+      );
+    } catch (e) {
+      console.error("[bot role callback]", e);
+      await ctx.reply(MSG_TECH_ERROR);
+      return;
+    }
+
     await ctx.deleteMessage().catch(() => {});
-    await ctx.reply(MSG_REG_SUCCESS, webAppButton(miniAppUrl));
+    await replyOpenMiniApp(
+      ctx,
+      hadRole ? MSG_ROLE_UPDATED : MSG_REG_SUCCESS,
+      miniAppUrl
+    );
   });
 
   bot.catch((err, ctx) => {
