@@ -1,0 +1,6 @@
+{
+  "name": "gift-zone-tg-2",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Monorepo: backend + mini-app (Vercel mini-app ni ildizdagi vercel.json orqali build qiladi)"
+}

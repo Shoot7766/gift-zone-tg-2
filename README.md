@@ -42,10 +42,10 @@ npm run promote-admin
 
 ### Mini App — Vercel
 
-1. Vercel’da **yangi loyiha** → repo ulang yoki `mini-app` papkasini deploy qiling.
-2. **Root Directory:** `mini-app` (agar repo butun monorepo bo‘lsa).
-3. **Environment Variables:** `VITE_API_URL` = backend HTTPS manzili, masalan `https://api.sizning-domen.uz` (oxirida `/` bo‘lmasin).
-4. Deploy tugagach Mini App URL masalan `https://gift-zone.vercel.app` — shuni **BotFather** / bot sozlamalarida **Mini App URL** va `backend/.env` dagi `MINI_APP_URL` ga qo‘ying.
-5. `vercel.json` ichida SPA uchun `index.html` ga rewrite bor; build: `npm run build`, chiqish: `dist` (Vercel Vite ni avtomatik aniqlaydi).
+1. Vercel’da **yangi loyiha** → GitHub repo (`gift-zone-tg-2`) ni ulang.
+2. **Ildizdagi `vercel.json`** `mini-app` ni build qiladi va chiqishni `mini-app/dist` ga qo‘yadi — qo‘shimcha “Root Directory” sozlashi shart emas.
+3. Agar 404 chiqsa: Vercel → Project → **Settings → General → Root Directory** bo‘sh qoldiring (yoki `mini-app` qilib faqat shu papkani deploy qilsangiz, ildizdagi `vercel.json` ni o‘chirib tashlang va Framework: Vite, Output: `dist`).
+4. **Environment Variables:** `VITE_API_URL` = backend HTTPS manzili (oxirida `/` bo‘lmasin).
+5. Deploy URL ni **BotFather** va `MINI_APP_URL` ga qo‘ying.
 
 **Eslatma:** `?devRole=...` faqat `npm run dev` da ishlaydi; production buildda yo‘q — bu xavfsizlik uchun to‘g‘ri.
