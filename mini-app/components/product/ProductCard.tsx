@@ -53,7 +53,6 @@ function ProductCardInner({
             className="object-cover transition duration-500 group-hover:scale-[1.04]"
             sizes="(max-width: 768px) 50vw, 33vw"
             loading="lazy"
-            unoptimized
           />
           {product.badge ? (
             <div className="absolute left-2 top-2">

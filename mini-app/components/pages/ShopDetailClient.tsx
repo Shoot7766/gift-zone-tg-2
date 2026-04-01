@@ -80,11 +80,11 @@ export default function ShopDetailClient({ id }: { id: string }) {
         ← Do‘konlar ro‘yxati
       </Link>
       <div className="relative h-36 w-full overflow-hidden rounded-3xl border border-gz-border">
-        <Image src={banner} alt="" fill className="object-cover" unoptimized />
+        <Image src={banner} alt="" fill className="object-cover" sizes="100vw" />
       </div>
       <div className="flex gap-3">
         <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl ring-2 ring-white/20">
-          <Image src={logo} alt="" fill className="object-cover" unoptimized />
+          <Image src={logo} alt="" fill className="object-cover" sizes="96px" />
         </div>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">

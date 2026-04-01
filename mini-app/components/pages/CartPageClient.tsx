@@ -31,6 +31,15 @@ export default function CartPageClient() {
         setLines([]);
         return;
       }
+      if (result.mode === "supabase") {
+        setOkMsg(
+          result.requestId
+            ? `Buyurtma qabul qilindi. ID: ${result.requestId.slice(0, 8)}…`
+            : "Buyurtma qabul qilindi — sotuvchi tez orada bog‘lanadi."
+        );
+        setLines([]);
+        return;
+      }
       openTelegramWithOrder(lines, total);
       setOkMsg(
         "Telegram ochildi — buyurtma matnini yuboring. Boshqa mahsulotlar uchun alohida sotuvchiga yozing."
@@ -110,8 +119,8 @@ export default function CartPageClient() {
               {busy ? "Yuborilmoqda…" : "✅ Buyurtma berish"}
             </Button>
             <p className="mt-2 text-center text-[11px] leading-relaxed text-gz-muted">
-              Supabase katalogida mahsulotlar odatda Telegram orqali sotuvchiga yoziladi. Agar
-              backend va raqamli mahsulot ID bo‘lsa, buyurtma serverga ham yuborilishi mumkin.
+              Vercel da TELEGRAM_BOT_TOKEN va SUPABASE_SERVICE_ROLE_KEY bo‘lsa, buyurtma Supabase ga
+              yoziladi; aks holda Telegram ochiladi. Backend + raqamli ID bo‘lsa — Prisma checkout.
             </p>
           </div>
           <button

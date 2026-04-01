@@ -4,40 +4,44 @@ import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import {
+  AI_OCCASIONS,
+  AI_RECIPIENTS,
+  buildGiftSearchQuery,
+  type AiOccasionId,
+  type AiRecipientId,
+} from "@/lib/aiGiftOptions";
 import { MOCK_CATEGORIES } from "@/lib/mock-data";
-
-const RECIPIENTS = [
-  { id: "ayol", label: "Ayolga", q: "ayol qiz" },
-  { id: "erkak", label: "Erkakka", q: "erkak ota" },
-  { id: "bola", label: "Bolaga", q: "bola bolalar" },
-  { id: "hamma", label: "Har kimga", q: "sovg'a universal" },
-] as const;
-
-const OCCASIONS = [
-  { id: "tug", label: "Tug‘ilgan kun", q: "tug'ilgan kun tort" },
-  { id: "bayram", label: "Bayram", q: "bayram sovg'a" },
-  { id: "nikoh", label: "To‘y / nikoh", q: "to'y nikoh" },
-  { id: "rahmat", label: "Rahmat", q: "rahmat minnatdorlik" },
-  { id: "ish", label: "Ish / muvaffaqiyat", q: "ish muvaffaqiyat" },
-] as const;
 
 export default function AiGiftPageClient() {
   const router = useRouter();
-  const [recipient, setRecipient] = useState<(typeof RECIPIENTS)[number]["id"]>("ayol");
-  const [occasion, setOccasion] = useState<(typeof OCCASIONS)[number]["id"]>("tug");
+  const [recipient, setRecipient] = useState<AiRecipientId>("ayol");
+  const [occasion, setOccasion] = useState<AiOccasionId>("tug");
   const [extra, setExtra] = useState("");
   const [category, setCategory] = useState<string>("Hammasi");
+  const [busy, setBusy] = useState(false);
 
-  const openProducts = useCallback(() => {
-    const r = RECIPIENTS.find((x) => x.id === recipient)?.q ?? "";
-    const o = OCCASIONS.find((x) => x.id === occasion)?.q ?? "";
-    const bits = ["sovg'a", r, o, extra.trim()].filter(Boolean);
-    const q = bits.join(" ");
-    const params = new URLSearchParams();
-    if (q.trim()) params.set("q", q.trim());
-    if (category && category !== "Hammasi") params.set("category", category);
-    const href = `/products${params.toString() ? `?${params}` : ""}`;
-    router.push(href);
+  const openProducts = useCallback(async () => {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/ai/suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recipient, occasion, extra }),
+      });
+      const j = (await res.json()) as { q?: string };
+      let q = (typeof j.q === "string" ? j.q : "").trim();
+      if (res.status === 429 || !q) {
+        q = buildGiftSearchQuery({ recipient, occasion, extra });
+      }
+      const params = new URLSearchParams();
+      if (q) params.set("q", q);
+      if (category && category !== "Hammasi") params.set("category", category);
+      const href = `/products${params.toString() ? `?${params}` : ""}`;
+      router.push(href);
+    } finally {
+      setBusy(false);
+    }
   }, [recipient, occasion, extra, category, router]);
 
   return (
@@ -50,14 +54,16 @@ export default function AiGiftPageClient() {
           🤖 Sovg‘a tanlash yordamchisi
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-gz-muted">
-          Bir nechta savol — keyin sizni mos mahsulotlar ro‘yxatiga yo‘naltiramiz (qidiruv orqali).
+          Bir nechta savol — keyin mos mahsulotlar ro‘yxatiga yo‘naltiramiz (qidiruv). Serverda{" "}
+          <span className="text-white/90">OPENAI_API_KEY</span> bo‘lsa, kalit so‘zlar AI bilan
+          boyitiladi.
         </p>
       </div>
 
       <section className="space-y-2">
         <p className="text-xs font-bold uppercase tracking-wide text-gz-muted">Kimga?</p>
         <div className="grid grid-cols-2 gap-2">
-          {RECIPIENTS.map((x) => (
+          {AI_RECIPIENTS.map((x) => (
             <button
               key={x.id}
               type="button"
@@ -77,7 +83,7 @@ export default function AiGiftPageClient() {
       <section className="space-y-2">
         <p className="text-xs font-bold uppercase tracking-wide text-gz-muted">Voqea</p>
         <div className="flex flex-col gap-2">
-          {OCCASIONS.map((x) => (
+          {AI_OCCASIONS.map((x) => (
             <button
               key={x.id}
               type="button"
@@ -125,8 +131,13 @@ export default function AiGiftPageClient() {
         />
       </section>
 
-      <Button type="button" className="w-full py-3.5 text-base font-bold shadow-lg shadow-violet-900/25" onClick={openProducts}>
-        🔍 Mos mahsulotlarni ko‘rish
+      <Button
+        type="button"
+        className="w-full py-3.5 text-base font-bold shadow-lg shadow-violet-900/25"
+        disabled={busy}
+        onClick={() => void openProducts()}
+      >
+        {busy ? "Tayyorlanmoqda…" : "🔍 Mos mahsulotlarni ko‘rish"}
       </Button>
 
       <div className="flex flex-col gap-2 border-t border-gz-border pt-4">

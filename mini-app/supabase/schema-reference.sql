@@ -37,6 +37,7 @@ create table if not exists public.products (
   created_at timestamptz default now()
 );
 
+-- Sevimlilar: RLS + server API (/api/favorites/*, initData + service_role). Anon kalit bilan emas.
 create table if not exists public.favorites (
   id uuid primary key default gen_random_uuid(),
   telegram_id bigint not null,
@@ -54,3 +55,18 @@ create table if not exists public.orders (
   status text default 'pending',
   created_at timestamptz default now()
 );
+
+-- Mini App «Buyurtma berish»: /api/order-request (initData tekshiruvi + service_role)
+create table if not exists public.order_requests (
+  id uuid primary key default gen_random_uuid(),
+  telegram_id bigint not null,
+  username text,
+  first_name text,
+  lines jsonb not null,
+  total numeric,
+  status text default 'pending',
+  created_at timestamptz default now()
+);
+
+create index if not exists order_requests_telegram_id_idx on public.order_requests (telegram_id);
+create index if not exists order_requests_created_at_idx on public.order_requests (created_at desc);

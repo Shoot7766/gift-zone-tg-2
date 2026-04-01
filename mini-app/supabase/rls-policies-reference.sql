@@ -52,6 +52,32 @@ create policy "products_public_read_active"
 
 -- Yozish: INSERT/UPDATE/DELETE alohida siyosat yoki service_role.
 
+-- order_requests: faqat service_role (Next API) yozadi (RLS yoqilgan, siyosat yo‘q = anon o‘qiy olmaydi)
+do $$
+begin
+  if exists (
+    select 1 from information_schema.tables
+    where table_schema = 'public' and table_name = 'order_requests'
+  ) then
+    alter table public.order_requests enable row level security;
+  end if;
+end $$;
+
+-- favorites: anon kalit bilan yozishni yopish; /api/favorites/* + service_role
+drop policy if exists "favorites_public_all" on public.favorites;
+drop policy if exists "favorites_select_own" on public.favorites;
+drop policy if exists "favorites_insert_own" on public.favorites;
+drop policy if exists "favorites_delete_own" on public.favorites;
+do $$
+begin
+  if exists (
+    select 1 from information_schema.tables
+    where table_schema = 'public' and table_name = 'favorites'
+  ) then
+    alter table public.favorites enable row level security;
+  end if;
+end $$;
+
 -- =============================================================================
 -- VARIANT B: Do‘kon jadvalida hech qachon is_approved bo‘lmasin desangiz,
 -- quyidagi ikki policy ni yuqoridagilar o‘rniga ishlating (1-bo‘lim va 2-bo‘limni o‘chirib):

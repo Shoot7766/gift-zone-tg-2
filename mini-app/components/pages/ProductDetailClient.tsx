@@ -68,7 +68,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
         ← Mahsulotlarga qaytish
       </Link>
       <div className="relative aspect-square w-full overflow-hidden rounded-3xl border border-gz-border bg-black/30">
-        <Image src={img} alt="" fill className="object-cover" unoptimized />
+        <Image src={img} alt="" fill className="object-cover" sizes="(max-width: 768px) 100vw, 480px" />
       </div>
       <div>
         <h1 className="text-2xl font-black text-white">{p.name}</h1>

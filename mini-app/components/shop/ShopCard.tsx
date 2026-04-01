@@ -28,7 +28,7 @@ function ShopCardInner({ shop }: { shop: DbShop }) {
       className="flex gap-3 rounded-2xl border border-gz-border/90 bg-gradient-to-r from-gz-surface via-gz-elevated/90 to-gz-surface p-4 shadow-[0_12px_36px_-18px_rgba(0,0,0,0.9)] transition hover:border-sky-500/35 hover:shadow-[0_16px_44px_-14px_rgba(56,189,248,0.18)]"
     >
       <div className="relative h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-2xl ring-2 ring-white/10">
-        <Image src={logo} alt="" fill className="object-cover" sizes="72px" unoptimized />
+        <Image src={logo} alt="" fill className="object-cover" sizes="72px" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">

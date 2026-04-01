@@ -8,12 +8,14 @@ function apiBase(): string | null {
 
 export type CheckoutResult =
   | { ok: true; mode: "api"; orderIds: number[] }
+  | { ok: true; mode: "supabase"; requestId: string }
   | { ok: true; mode: "telegram" }
   | { ok: false; message: string };
 
 /**
- * 1) Agar barcha productId raqamli VA JWT VA API bor bo‘lsa — Prisma backend checkout.
- * 2) Aks holda — Telegram orqali buyurtma matni (Supabase UUID katalog uchun).
+ * 1) Raqamli productId + JWT + API — Prisma backend checkout.
+ * 2) Telegram initData + serverda TELEGRAM_BOT_TOKEN va SUPABASE_SERVICE_ROLE_KEY — Supabase order_requests.
+ * 3) Aks holda — Telegram orqali buyurtma matni.
  */
 export async function submitCheckout(lines: CartLine[]): Promise<CheckoutResult> {
   const base = apiBase();
@@ -55,6 +57,53 @@ export async function submitCheckout(lines: CartLine[]): Promise<CheckoutResult>
       };
     }
     return { ok: false, message: "Buyurtma yuborilmadi. Keyinroq urinib ko‘ring." };
+  }
+
+  if (typeof window !== "undefined" && lines.length > 0) {
+    const initData = window.Telegram?.WebApp?.initData ?? "";
+    if (initData) {
+      const res = await fetch("/api/order-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          initData,
+          lines: lines.map((l) => ({
+            productId: l.productId,
+            name: l.name,
+            price: l.price,
+            qty: l.qty,
+            sellerUsername: l.sellerUsername ?? null,
+            shopName: l.shopName ?? null,
+          })),
+        }),
+      });
+
+      if (res.ok) {
+        const j = (await res.json()) as { ok?: boolean; id?: string | null };
+        if (j.ok) {
+          return { ok: true, mode: "supabase", requestId: j.id ?? "" };
+        }
+      }
+
+      if (res.status === 401) {
+        return {
+          ok: false,
+          message: "Telegram sessiyasi yaroqsiz. Mini ilovani qayta oching.",
+        };
+      }
+
+      if (res.status === 500) {
+        const j = (await res.json().catch(() => ({}))) as { detail?: string };
+        return {
+          ok: false,
+          message:
+            j.detail?.includes("order_requests") || j.detail?.includes("relation")
+              ? "Buyurtma jadvali topilmadi. Supabase da order_requests ni yarating (schema-reference.sql)."
+              : "Buyurtma saqlanmadi. Keyinroq urinib ko‘ring.",
+        };
+      }
+      /* 503 server_misconfigured — Telegram ga tushamiz */
+    }
   }
 
   return { ok: true, mode: "telegram" };

@@ -7,7 +7,6 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "placehold.co", pathname: "/**" },
       { protocol: "https", hostname: "*.supabase.co", pathname: "/**" },
     ],
-    unoptimized: true,
   },
 };
 
