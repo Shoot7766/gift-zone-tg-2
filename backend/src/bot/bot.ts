@@ -1,4 +1,5 @@
 import { Telegraf, Markup } from "telegraf";
+import { Prisma } from "@prisma/client";
 import type { Role } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import {
@@ -8,6 +9,7 @@ import {
   MSG_RETURNING,
   MSG_WRONG_PHONE_INPUT,
   MSG_ROLE_MISSING,
+  MSG_TECH_ERROR,
   BTN_OPEN_APP,
   BTN_SHARE_PHONE,
   ROLE_CUSTOMER,
@@ -76,16 +78,31 @@ export function createBot({ token, miniAppUrl }: BotOptions) {
   const bot = new Telegraf(token);
 
   bot.start(async (ctx) => {
-    await upsertUserFromTelegram(ctx);
-    const telegramId = BigInt(ctx.from!.id);
-    const user = await prisma.user.findUnique({ where: { telegramId } });
+    try {
+      if (!ctx.from?.id) {
+        await ctx.reply(MSG_TECH_ERROR);
+        return;
+      }
+      await upsertUserFromTelegram(ctx);
+      const telegramId = BigInt(ctx.from.id);
+      const user = await prisma.user.findUnique({ where: { telegramId } });
 
-    if (user?.phoneNumber && user.role != null) {
-      await ctx.reply(MSG_RETURNING, webAppButton(miniAppUrl));
-      return;
+      if (user?.phoneNumber && user.role != null) {
+        await ctx.reply(MSG_RETURNING, webAppButton(miniAppUrl));
+        return;
+      }
+
+      await ctx.reply(MSG_START, phoneKeyboard());
+    } catch (e) {
+      console.error("[bot /start]", e);
+      if (e instanceof Prisma.PrismaClientKnownRequestError) {
+        console.error("  Prisma kod:", e.code, e.meta);
+      }
+      if (e instanceof Error) {
+        console.error("  Xabar:", e.message);
+      }
+      await ctx.reply(MSG_TECH_ERROR);
     }
-
-    await ctx.reply(MSG_START, phoneKeyboard());
   });
 
   bot.on("contact", async (ctx) => {
@@ -154,6 +171,13 @@ export function createBot({ token, miniAppUrl }: BotOptions) {
     await ctx.answerCbQuery();
     await ctx.deleteMessage().catch(() => {});
     await ctx.reply(MSG_REG_SUCCESS, webAppButton(miniAppUrl));
+  });
+
+  bot.catch((err, ctx) => {
+    console.error("[bot]", err);
+    if (ctx?.chat?.id) {
+      ctx.reply(MSG_TECH_ERROR).catch(() => {});
+    }
   });
 
   return bot;

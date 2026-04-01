@@ -27,3 +27,6 @@ export const ROLE_ADMIN = "🛠 Admin";
 export const CALLBACK_ROLE_CUSTOMER = "role:customer";
 export const CALLBACK_ROLE_SELLER = "role:seller";
 export const CALLBACK_ROLE_ADMIN = "role:admin";
+
+export const MSG_TECH_ERROR =
+  "Texnik xatolik yuz berdi. Bir ozdan keyin /start ni qayta bosing yoki server ishlayotganini tekshiring.";

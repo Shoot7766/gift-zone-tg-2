@@ -1,7 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "cd mini-app && npm install",
-  "buildCommand": "cd mini-app && npm run build",
-  "outputDirectory": "mini-app/dist",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "buildCommand": "cd mini-app && npm run build"
 }

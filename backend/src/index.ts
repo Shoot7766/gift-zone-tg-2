@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { prisma } from "./lib/prisma.js";
 import { createBot } from "./bot/bot.js";
 import { authRouter } from "./routes/auth.js";
 import { publicRouter } from "./routes/public.js";
@@ -36,6 +37,32 @@ async function main() {
 
   const bot = createBot({ token: BOT_TOKEN, miniAppUrl: MINI_APP_URL });
 
+  try {
+    const me = await bot.telegram.getMe();
+    console.log(`Telegram bot: @${me.username} (${me.first_name})`);
+  } catch (e) {
+    console.error("BOT_TOKEN noto‘g‘ri yoki Telegram tarmog‘iga ulanib bo‘lmadi:", e);
+    process.exit(1);
+  }
+
+  try {
+    await prisma.$connect();
+    await prisma.$queryRaw`SELECT 1`;
+    console.log("Ma'lumotlar bazasiga muvaffaqiyatli ulandi.");
+  } catch (e) {
+    console.error(
+      "Prisma / SQLite xato. Backend papkada `npx prisma db push` ni ishga tushiring; DATABASE_URL ni tekshiring.",
+      e
+    );
+    process.exit(1);
+  }
+
+  if (process.env.NODE_ENV === "production" && !WEBHOOK_URL) {
+    console.warn(
+      "[eslatma] Productionda odatda WEBHOOK_URL kerak (serverless / sleep rejimida long polling ishlamaydi)."
+    );
+  }
+
   app.use("/api/auth", authRouter({ botToken: BOT_TOKEN, jwtSecret: JWT_SECRET }));
   app.use("/api/public", publicRouter());
   app.use("/api/me", meRouter(JWT_SECRET));
@@ -43,7 +70,14 @@ async function main() {
   app.use("/api/seller", sellerRouter(JWT_SECRET, uploadDir, publicUploadUrl));
   app.use("/api/admin", adminRouter(JWT_SECRET));
 
-  app.get("/health", (_req, res) => res.json({ ok: true }));
+  app.get("/health", async (_req, res) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      res.json({ ok: true, database: "up" });
+    } catch {
+      res.status(503).json({ ok: false, database: "down" });
+    }
+  });
 
   const webhookPath = "/telegram/webhook";
   if (WEBHOOK_URL) {
