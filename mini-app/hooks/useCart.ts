@@ -2,15 +2,34 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 
-export type CartLine = { productId: string; name: string; price: number; qty: number };
+export type CartLine = {
+  productId: string;
+  name: string;
+  price: number;
+  qty: number;
+  /** Sotuvchiga to‘g‘ridan-to‘g‘ri buyurtma matni yuborish uchun */
+  sellerUsername?: string | null;
+  shopName?: string | null;
+};
 
 const KEY = "gz_cart_v2";
 
 function read(): CartLine[] {
   if (typeof window === "undefined") return [];
   try {
-    const v = JSON.parse(localStorage.getItem(KEY) ?? "[]") as CartLine[];
-    return Array.isArray(v) ? v : [];
+    const raw = JSON.parse(localStorage.getItem(KEY) ?? "[]") as unknown;
+    if (!Array.isArray(raw)) return [];
+    return raw.map((x) => {
+      const o = x as Record<string, unknown>;
+      return {
+        productId: String(o.productId ?? ""),
+        name: String(o.name ?? ""),
+        price: Number(o.price) || 0,
+        qty: Math.max(1, Math.floor(Number(o.qty) || 1)),
+        sellerUsername: (o.sellerUsername as string) ?? null,
+        shopName: (o.shopName as string) ?? null,
+      };
+    });
   } catch {
     return [];
   }

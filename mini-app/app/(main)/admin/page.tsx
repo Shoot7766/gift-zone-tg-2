@@ -5,12 +5,16 @@ export default function AdminPage() {
   return (
     <div className="space-y-6 pb-8">
       <h1 className="text-xl font-black text-white">Admin paneli</h1>
+      <div className="rounded-2xl border border-amber-500/35 bg-amber-950/25 p-3 text-[11px] leading-relaxed text-amber-100/95">
+        <strong className="font-bold">Namoyish:</strong> statistikalar hozircha joy ushlovchi.
+        Haqiqiy ma’lumotlar backend admin API ulangach ko‘rinadi.
+      </div>
       <div className="grid grid-cols-2 gap-3">
         {[
-          ["Foydalanuvchilar", "128"],
-          ["Do‘konlar", "42"],
-          ["Mahsulotlar", "560"],
-          ["Buyurtmalar", "89"],
+          ["Foydalanuvchilar", "—"],
+          ["Do‘konlar", "—"],
+          ["Mahsulotlar", "—"],
+          ["Buyurtmalar", "—"],
         ].map(([k, v]) => (
           <div
             key={k}

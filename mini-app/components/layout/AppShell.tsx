@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
+import { DataStatusBanner } from "./DataStatusBanner";
 import { TelegramBar } from "./TelegramBar";
 
 const nav = [
@@ -21,7 +22,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col pb-[calc(72px+env(safe-area-inset-bottom))]">
       <TelegramBar />
-      <main className="flex-1 px-3 pt-2">{children}</main>
+      <main className="flex-1 px-3 pt-2">
+        <DataStatusBanner />
+        {children}
+      </main>
       {!hideNav ? (
         <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-gz-border bg-gz-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg">
           <div className="flex overflow-x-auto scrollbar-hide">

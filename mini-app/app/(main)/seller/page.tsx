@@ -12,18 +12,24 @@ export default function SellerDashboardPage() {
         </p>
       </div>
 
+      <div className="rounded-2xl border border-sky-500/35 bg-sky-950/25 p-3 text-[11px] leading-relaxed text-sky-100/95">
+        <strong className="font-bold">Eslatma:</strong> Quyidagi raqamlar hozircha{" "}
+        <strong>namuna</strong>. Haqiqiy ko‘rinish, buyurtma va tushum keyin backend (JWT +
+        Prisma) bilan ulanganda ko‘rinadi.
+      </div>
+
       <div className="grid grid-cols-3 gap-2">
         <div className="rounded-2xl border border-gz-border bg-gz-surface p-3 text-center">
           <p className="text-[10px] text-gz-muted">Ko‘rishlar</p>
-          <p className="text-lg font-black text-white">1.2k</p>
+          <p className="text-lg font-black text-white">—</p>
         </div>
         <div className="rounded-2xl border border-gz-border bg-gz-surface p-3 text-center">
           <p className="text-[10px] text-gz-muted">Buyurtmalar</p>
-          <p className="text-lg font-black text-gz-accent">48</p>
+          <p className="text-lg font-black text-gz-accent">—</p>
         </div>
         <div className="rounded-2xl border border-gz-border bg-gz-surface p-3 text-center">
           <p className="text-[10px] text-gz-muted">Tushum</p>
-          <p className="text-lg font-black text-amber-300">12M</p>
+          <p className="text-lg font-black text-amber-300">—</p>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import type { UserRole } from "@/types/database";
 
-const JWT_KEY = "gz_api_jwt";
+export const GZ_JWT_STORAGE_KEY = "gz_api_jwt";
 
 function apiBase(): string | null {
   const u = process.env.NEXT_PUBLIC_API_BASE_URL?.trim().replace(/\/$/, "");
@@ -15,7 +15,7 @@ export async function fetchRoleFromBackend(): Promise<UserRole | null> {
   const initData = window.Telegram?.WebApp?.initData ?? "";
   if (!initData) return null;
 
-  let token = sessionStorage.getItem(JWT_KEY);
+  let token = sessionStorage.getItem(GZ_JWT_STORAGE_KEY);
 
   if (token) {
     const me = await fetch(`${base}/api/me`, {
@@ -26,7 +26,7 @@ export async function fetchRoleFromBackend(): Promise<UserRole | null> {
       const r = j.user?.role;
       if (r === "customer" || r === "seller" || r === "admin") return r;
     }
-    sessionStorage.removeItem(JWT_KEY);
+    sessionStorage.removeItem(GZ_JWT_STORAGE_KEY);
     token = null;
   }
 
@@ -44,7 +44,7 @@ export async function fetchRoleFromBackend(): Promise<UserRole | null> {
   };
 
   if (typeof authJson.token === "string") {
-    sessionStorage.setItem(JWT_KEY, authJson.token);
+    sessionStorage.setItem(GZ_JWT_STORAGE_KEY, authJson.token);
   }
 
   const r = authJson.user?.role;
@@ -54,5 +54,10 @@ export async function fetchRoleFromBackend(): Promise<UserRole | null> {
 
 export function clearBackendSession(): void {
   if (typeof window === "undefined") return;
-  sessionStorage.removeItem(JWT_KEY);
+  sessionStorage.removeItem(GZ_JWT_STORAGE_KEY);
+}
+
+export function getStoredJwt(): string | null {
+  if (typeof window === "undefined") return null;
+  return sessionStorage.getItem(GZ_JWT_STORAGE_KEY);
 }

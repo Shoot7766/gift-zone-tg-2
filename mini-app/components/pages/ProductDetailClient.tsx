@@ -105,6 +105,8 @@ export default function ProductDetailClient({ id }: { id: string }) {
             name: p.name,
             price: p.price,
             qty: 1,
+            sellerUsername: p.shops?.owner_telegram_username ?? null,
+            shopName: p.shops?.name ?? null,
           })
         }
       >

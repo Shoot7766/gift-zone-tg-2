@@ -83,6 +83,14 @@ export default function ProfilePageClient() {
           </Link>
         </div>
       )}
+
+      {!process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ? (
+        <div className="rounded-2xl border border-amber-500/35 bg-amber-950/25 p-3 text-[11px] leading-relaxed text-amber-100/95">
+          <strong className="font-bold">Rol sinxroni:</strong> botdagi rol bilan mos kelishi uchun
+          loyiha <code className="rounded bg-black/35 px-1">NEXT_PUBLIC_API_BASE_URL</code>{" "}
+          (backend HTTPS manzili) bilan sozlang. Aks holda rol Supabase jadvalidan o‘qiladi.
+        </div>
+      ) : null}
     </div>
   );
 }
