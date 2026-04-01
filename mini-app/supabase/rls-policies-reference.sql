@@ -1,23 +1,39 @@
 -- =============================================================================
--- Gift Zone — RLS namunasi (Supabase SQL Editor da tekshirib qo‘llang)
--- Maqsad: anon kalit bilan faqat TASDIQLANGAN do‘kon va FAOL mahsulotlarni o‘qish.
---
--- Eslatma: favorites jadvalida RLS qat’iy qo‘yilsa, Telegram initData bilan
--- anon kalit odatda foydalanuvchini ajratmaydi. Saqlanganlar uchun:
---   - Edge Function + service_role, yoki
---   - Backend API orqali yozish
--- tavsiya etiladi. Shu faylda favorites uchun RLS yo‘q.
+-- Gift Zone — RLS (Supabase SQL Editor)
+-- Agar "column is_approved does not exist" chiqsa: 1-bo‘limdagi ALTER lar ustunlarni qo‘shadi.
 -- =============================================================================
 
-alter table if exists public.shops enable row level security;
-alter table if exists public.products enable row level security;
+-- 1) Ilova kutilgan ustunlar (allaqachon bo‘lsa, hech narsa o‘zgarmaydi)
+alter table public.shops
+  add column if not exists is_approved boolean default true;
+
+alter table public.shops
+  add column if not exists is_featured boolean default false;
+
+alter table public.shops
+  add column if not exists subscription_type text default 'free';
+
+alter table public.shops
+  add column if not exists owner_telegram_username text;
+
+alter table public.products
+  add column if not exists is_active boolean default true;
+
+-- Eski qatorlarda NULL bo‘lib qolmasin (ixtiyoriy, lekin tavsiya)
+update public.shops set is_approved = true where is_approved is null;
+update public.shops set is_featured = false where is_featured is null;
+update public.products set is_active = true where is_active is null;
+
+-- 2) RLS
+alter table public.shops enable row level security;
+alter table public.products enable row level security;
 
 drop policy if exists "shops_public_read_approved" on public.shops;
 create policy "shops_public_read_approved"
   on public.shops
   for select
   to anon, authenticated
-  using (is_approved = true);
+  using (coalesce(is_approved, true) = true);
 
 drop policy if exists "products_public_read_active" on public.products;
 create policy "products_public_read_active"
@@ -25,14 +41,28 @@ create policy "products_public_read_active"
   for select
   to anon, authenticated
   using (
-    is_active = true
+    coalesce(is_active, true) = true
     and exists (
       select 1
       from public.shops s
       where s.id = products.shop_id
-        and s.is_approved = true
+        and coalesce(s.is_approved, true) = true
     )
   );
 
--- Yozish: mahsulot/do‘kon qo‘shishni faqat service_role yoki authenticated seller bilan cheklang.
--- Masalan, INSERT/UPDATE/DELETE uchun alohida siyosatlar yoki umuman yo‘q (faqat dashboard).
+-- Yozish: INSERT/UPDATE/DELETE alohida siyosat yoki service_role.
+
+-- =============================================================================
+-- VARIANT B: Do‘kon jadvalida hech qachon is_approved bo‘lmasin desangiz,
+-- quyidagi ikki policy ni yuqoridagilar o‘rniga ishlating (1-bo‘lim va 2-bo‘limni o‘chirib):
+--
+-- alter table public.products enable row level security;
+-- create policy "products_read_all_active"
+--   on public.products for select to anon, authenticated
+--   using (coalesce(is_active, true) = true);
+--
+-- alter table public.shops enable row level security;
+-- create policy "shops_read_all"
+--   on public.shops for select to anon, authenticated
+--   using (true);
+-- =============================================================================
