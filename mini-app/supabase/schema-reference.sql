@@ -1,4 +1,5 @@
--- Supabase uchun namuna sxema (moslashtiring). RLS siyosatlarini alohida qo‘shing.
+-- Supabase uchun namuna sxema (moslashtiring).
+-- RLS uchun: rls-policies-reference.sql faylini qarang.
 
 create table if not exists public.users (
   id uuid primary key default gen_random_uuid(),
