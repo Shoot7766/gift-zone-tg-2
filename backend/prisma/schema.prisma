@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  customer
+  seller
+  admin
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  shipped
+  completed
+  cancelled
+}
+
+enum SubscriptionType {
+  free
+  basic
+  vip
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  telegramId    BigInt    @unique @map("telegram_id")
+  username      String?
+  firstName     String?   @map("first_name")
+  lastName      String?   @map("last_name")
+  phoneNumber   String?   @map("phone_number")
+  /// Ro‘l botda tanlanguncha null (mini ilovaga kirish uchun majburiy)
+  role          Role?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  ownedShops    Shop[]    @relation("ShopOwner")
+  orders        Order[]   @relation("CustomerOrders")
+  favorites     Favorite[]
+
+  @@map("users")
+}
+
+model Shop {
+  id                Int               @id @default(autoincrement())
+  ownerUserId       Int               @map("owner_user_id")
+  name              String
+  description       String            @default("")
+  city              String            @default("")
+  logoUrl           String?           @map("logo_url")
+  bannerUrl         String?           @map("banner_url")
+  isApproved        Boolean           @default(false) @map("is_approved")
+  subscriptionType  SubscriptionType  @default(free) @map("subscription_type")
+  isFeatured        Boolean           @default(false) @map("is_featured")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  owner             User              @relation("ShopOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  products          Product[]
+  analytics         Analytics?
+
+  @@index([ownerUserId])
+  @@index([isApproved])
+  @@map("shops")
+}
+
+model Product {
+  id          Int       @id @default(autoincrement())
+  shopId      Int       @map("shop_id")
+  name        String
+  description String    @default("")
+  price       Float
+  imageUrl    String?   @map("image_url")
+  category    String    @default("")
+  stock       Int       @default(0)
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  shop        Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  orders      Order[]
+  favorites   Favorite[]
+
+  @@index([shopId])
+  @@index([category])
+  @@map("products")
+}
+
+model Order {
+  id              Int          @id @default(autoincrement())
+  customerUserId  Int          @map("customer_user_id")
+  productId       Int          @map("product_id")
+  quantity        Int          @default(1)
+  totalPrice      Float        @map("total_price")
+  status          OrderStatus  @default(pending)
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  customer        User         @relation("CustomerOrders", fields: [customerUserId], references: [id], onDelete: Cascade)
+  product         Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([customerUserId])
+  @@index([productId])
+  @@map("orders")
+}
+
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  productId Int      @map("product_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@map("favorites")
+}
+
+/// Har bir do‘kon uchun jamlanma statistika (yangilanadi)
+model Analytics {
+  id           Int      @id @default(autoincrement())
+  shopId       Int      @unique @map("shop_id")
+  viewsCount   Int      @default(0) @map("views_count")
+  clicksCount  Int      @default(0) @map("clicks_count")
+  ordersCount  Int      @default(0) @map("orders_count")
+  revenue      Float    @default(0)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  shop         Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@map("analytics")
+}
