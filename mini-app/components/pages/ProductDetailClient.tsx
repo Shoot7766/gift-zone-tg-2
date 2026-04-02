@@ -23,11 +23,13 @@ export default function ProductDetailClient({ id }: { id: string }) {
   const q = useQuery({
     queryKey: ["product", id],
     queryFn: () => fetchProductById(supabase, id),
+    staleTime: 60_000,
   });
 
   const favQ = useQuery({
     queryKey: ["fav-ids", tgId],
     queryFn: () => fetchFavoriteIds(supabase, tgId),
+    staleTime: 120_000,
   });
 
   const saved = favQ.data?.includes(id) ?? false;
@@ -76,6 +78,18 @@ export default function ProductDetailClient({ id }: { id: string }) {
         <p className="mt-3 text-2xl font-extrabold text-gz-accent">
           {formatPriceUZS(p.price)}
         </p>
+        <div className="mt-2 flex flex-wrap gap-2 text-xs">
+          {p.product_type === "service" ? (
+            <span className="rounded-lg bg-violet-500/15 px-2 py-1 font-semibold text-violet-200 ring-1 ring-violet-400/25">
+              🛎 Xizmat
+              {p.service_type ? ` · ${p.service_type}` : ""}
+            </span>
+          ) : typeof p.stock === "number" ? (
+            <span className="rounded-lg bg-white/10 px-2 py-1 font-semibold text-gz-muted ring-1 ring-white/10">
+              📦 Omborda: {p.stock} ta
+            </span>
+          ) : null}
+        </div>
         <p className="mt-3 text-sm leading-relaxed text-gz-muted">
           {p.description ?? "Tavsif qo‘shilmagan."}
         </p>

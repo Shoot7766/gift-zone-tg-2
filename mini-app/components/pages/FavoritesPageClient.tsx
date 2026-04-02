@@ -19,7 +19,8 @@ export default function FavoritesPageClient() {
   const q = useQuery({
     queryKey: ["favorites", tgId, sbKey],
     queryFn: () => fetchFavoriteProducts(supabase, tgId),
-    staleTime: 60_000,
+    staleTime: 90_000,
+    gcTime: 240_000,
   });
 
   const favSet = useMemo(() => new Set((q.data ?? []).map((p) => p.id)), [q.data]);
@@ -56,8 +57,8 @@ export default function FavoritesPageClient() {
       ) : (q.data ?? []).length === 0 ? (
         <EmptyState
           emoji="⭐"
-          title="Saqlangan mahsulotlar yo‘q"
-          hint="Yoqtirgan mahsulotlaringizni yulduzcha bilan saqlang."
+          title="Saqlanganlar yo‘q"
+          hint="Mahsulot kartochkasidan ⭐ Saqlash tugmasini bosing."
         />
       ) : (
         <div className="grid grid-cols-2 gap-3">

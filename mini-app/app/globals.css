@@ -12,6 +12,7 @@ html {
 
 body {
   @apply min-h-screen bg-gz-bg font-sans text-white antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 .scrollbar-hide {

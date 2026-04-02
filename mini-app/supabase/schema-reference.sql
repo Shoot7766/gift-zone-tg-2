@@ -37,6 +37,12 @@ create table if not exists public.products (
   created_at timestamptz default now()
 );
 
+-- Mahsulot / xizmat (mavjud jadvalga qo‘shish — SQL Editor da bir marta)
+alter table public.products add column if not exists product_type text default 'product';
+alter table public.products add column if not exists stock int;
+alter table public.products add column if not exists service_type text;
+update public.products set product_type = coalesce(product_type, 'product');
+
 -- Sevimlilar: RLS + server API (/api/favorites/*, initData + service_role). Anon kalit bilan emas.
 create table if not exists public.favorites (
   id uuid primary key default gen_random_uuid(),
@@ -70,3 +76,9 @@ create table if not exists public.order_requests (
 
 create index if not exists order_requests_telegram_id_idx on public.order_requests (telegram_id);
 create index if not exists order_requests_created_at_idx on public.order_requests (created_at desc);
+
+-- =============================================================================
+-- Storage: sotuvchi rasm yuklash (/api/seller/upload-image)
+-- Dashboard → Storage → New bucket → nom: product-images → Public bucket: ON
+-- (Yoki .env da SUPABASE_PRODUCT_IMAGES_BUCKET bilan boshqa nom)
+-- =============================================================================

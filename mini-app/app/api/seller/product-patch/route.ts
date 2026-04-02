@@ -41,6 +41,25 @@ export async function POST(req: Request) {
     patch.is_active = r.data.body.is_active;
   }
 
+  if (r.data.body.product_type === "service" || r.data.body.product_type === "product") {
+    patch.product_type = r.data.body.product_type;
+    if (r.data.body.product_type === "service") {
+      patch.stock = null;
+    }
+  }
+
+  if (typeof r.data.body.service_type === "string") {
+    const t = r.data.body.service_type.trim().slice(0, 120);
+    patch.service_type = t.length ? t : null;
+  }
+
+  const st = r.data.body.stock;
+  if (st === null) {
+    patch.stock = null;
+  } else if (typeof st === "number" && Number.isFinite(st) && st >= 0) {
+    patch.stock = Math.floor(st);
+  }
+
   if (Object.keys(patch).length === 0) {
     return NextResponse.json({ error: "no_fields" }, { status: 400 });
   }

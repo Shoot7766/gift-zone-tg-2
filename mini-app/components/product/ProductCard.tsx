@@ -27,7 +27,9 @@ function ProductCardInner({
   const shop = product.shops;
   const img =
     product.image_url ||
-    "https://placehold.co/600x450/161d2e/34d399/png?text=Gift+Zone";
+    "https://placehold.co/600x800/161d2e/34d399/png?text=Gift+Zone";
+  const isService = product.product_type === "service";
+  const stock = product.stock;
 
   const writeSeller = useCallback(() => {
     const u = shop?.owner_telegram_username;
@@ -43,25 +45,30 @@ function ProductCardInner({
   }, [onToggleSave, product.id]);
 
   return (
-    <article className="group overflow-hidden rounded-2xl border border-gz-border/90 bg-gradient-to-b from-gz-surface to-gz-bg shadow-[0_12px_40px_-20px_rgba(0,0,0,0.85)] transition duration-300 hover:border-emerald-500/30 hover:shadow-[0_16px_48px_-16px_rgba(16,185,129,0.25)]">
+    <article className="group overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-b from-gz-surface to-gz-bg shadow-[0_16px_48px_-20px_rgba(0,0,0,0.85)] transition duration-300 hover:border-emerald-500/30 hover:shadow-[0_20px_56px_-18px_rgba(16,185,129,0.22)]">
       <Link href={`/products/${product.id}`} className="block">
-        <div className="relative aspect-[4/3] w-full overflow-hidden bg-black/25">
+        <div className="relative aspect-[3/4] w-full overflow-hidden bg-black/30">
           <Image
             src={img}
             alt=""
             fill
-            className="object-cover transition duration-500 group-hover:scale-[1.04]"
+            className="object-cover transition duration-500 group-hover:scale-[1.03]"
             sizes="(max-width: 768px) 50vw, 33vw"
             loading="lazy"
           />
-          {product.badge ? (
-            <div className="absolute left-2 top-2">
+          <div className="absolute left-2 top-2 flex flex-col gap-1">
+            {product.badge ? (
               <Badge variant="vip">{badgeLabel[product.badge]}</Badge>
-            </div>
-          ) : null}
+            ) : null}
+            {isService ? (
+              <Badge variant="neutral">🛎 Xizmat</Badge>
+            ) : typeof stock === "number" ? (
+              <Badge variant="neutral">📦 {stock} ta</Badge>
+            ) : null}
+          </div>
         </div>
       </Link>
-      <div className="space-y-2 p-3">
+      <div className="space-y-2 p-3.5">
         <Link href={`/products/${product.id}`}>
           <h3 className="line-clamp-2 text-[15px] font-bold leading-snug text-white">
             {product.name}
@@ -101,6 +108,10 @@ export const ProductCard = memo(ProductCardInner, (prev, next) => {
     prev.product.price === next.product.price &&
     prev.product.name === next.product.name &&
     prev.product.image_url === next.product.image_url &&
+    prev.product.product_type === next.product.product_type &&
+    prev.product.stock === next.product.stock &&
+    prev.product.badge === next.product.badge &&
+    prev.product.shops?.name === next.product.shops?.name &&
     prev.onToggleSave === next.onToggleSave
   );
 });

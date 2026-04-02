@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchRoleFromBackend } from "@/services/backendSession";
+import { fetchRoleFromMiniServer } from "@/services/roleFromServer";
 import { fetchUserRoleByTelegramId } from "@/services/users";
 import type { UserRole } from "@/types/database";
 import { useSupabase } from "./useSupabase";
@@ -21,6 +22,9 @@ export function useUserRole() {
         const fromBackend = await fetchRoleFromBackend();
         if (fromBackend != null) return fromBackend;
       }
+
+      const fromMini = await fetchRoleFromMiniServer();
+      if (fromMini != null) return fromMini;
 
       return fetchUserRoleByTelegramId(supabase, tgId);
     },

@@ -161,13 +161,19 @@ export default function SellerDashboardClient() {
           href="/seller/shop"
           className="rounded-2xl border border-gz-border bg-gz-elevated px-4 py-3 text-sm font-semibold"
         >
-          🏪 Mening do‘konim
+          🏪 Do‘konim
+        </Link>
+        <Link
+          href="/seller/add"
+          className="rounded-2xl border border-emerald-500/30 bg-emerald-950/25 px-4 py-3 text-sm font-semibold text-emerald-100"
+        >
+          ➕ Mahsulot qo‘shish
         </Link>
         <Link
           href="/seller/products"
           className="rounded-2xl border border-gz-border bg-gz-elevated px-4 py-3 text-sm font-semibold"
         >
-          📦 Mahsulotlar
+          📦 Mahsulotlarim
         </Link>
         <Link
           href="/seller/orders"
@@ -179,7 +185,7 @@ export default function SellerDashboardClient() {
           href="/seller/analytics"
           className="rounded-2xl border border-gz-border bg-gz-elevated px-4 py-3 text-sm font-semibold"
         >
-          📈 Analitika
+          📊 Analitika
         </Link>
       </div>
 

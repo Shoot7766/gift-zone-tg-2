@@ -20,15 +20,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const hideNav = path?.startsWith("/ai");
 
   return (
-    <div className="flex min-h-screen flex-col pb-[calc(72px+env(safe-area-inset-bottom))]">
+    <div className="flex min-h-screen flex-col pb-[calc(76px+env(safe-area-inset-bottom))]">
       <TelegramBar />
       <main className="flex-1 px-3 pt-2">
         <DataStatusBanner />
         {children}
       </main>
       {!hideNav ? (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-gz-border bg-gz-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg">
-          <div className="flex overflow-x-auto scrollbar-hide">
+        <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.06] bg-gz-bg/92 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
+          <div className="flex overflow-x-auto px-1 pt-1 scrollbar-hide">
             {nav.map((n) => {
               const active =
                 n.href === "/"
@@ -39,12 +39,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   key={n.href}
                   href={n.href}
                   className={cn(
-                    "flex min-w-[68px] flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-semibold",
-                    active ? "text-gz-accent" : "text-gz-muted"
+                    "flex min-w-[68px] flex-1 flex-col items-center gap-0.5 rounded-xl py-2 text-[10px] font-semibold transition",
+                    active
+                      ? "bg-emerald-500/12 text-gz-accent shadow-[inset_0_0_0_1px_rgba(52,211,153,0.25)]"
+                      : "text-gz-muted hover:text-white/90"
                   )}
                 >
-                  <span className="text-lg">{n.emoji}</span>
-                  <span className="leading-tight text-center">{n.label}</span>
+                  <span className="text-[1.15rem] leading-none">{n.emoji}</span>
+                  <span className="max-w-[4.5rem] text-center leading-tight">{n.label}</span>
                 </Link>
               );
             })}

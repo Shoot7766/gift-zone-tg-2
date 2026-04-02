@@ -1,3 +1,6 @@
+/**
+ * Do‘konlar servisi — faqat tasdiqlangan, featured ustunlik.
+ */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { MOCK_SHOPS } from "@/lib/mock-data";
 import type { DbShop } from "@/types/database";

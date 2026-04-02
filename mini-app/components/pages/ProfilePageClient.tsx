@@ -84,13 +84,28 @@ export default function ProfilePageClient() {
         </div>
       )}
 
-      {!process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ? (
-        <div className="rounded-2xl border border-amber-500/35 bg-amber-950/25 p-3 text-[11px] leading-relaxed text-amber-100/95">
-          <strong className="font-bold">Rol sinxroni:</strong> botdagi rol bilan mos kelishi uchun
-          loyiha <code className="rounded bg-black/35 px-1">NEXT_PUBLIC_API_BASE_URL</code>{" "}
-          (backend HTTPS manzili) bilan sozlang. Aks holda rol Supabase jadvalidan o‘qiladi.
-        </div>
-      ) : null}
+      <div className="rounded-2xl border border-amber-500/35 bg-amber-950/25 p-3 text-[11px] leading-relaxed text-amber-100/95">
+        <strong className="font-bold">Rol qanday ishlaydi:</strong>
+        <ul className="mt-2 list-inside list-disc space-y-1 text-amber-100/90">
+          <li>
+            <code className="rounded bg-black/35 px-1">NEXT_PUBLIC_API_BASE_URL</code> berilsa — avvalo
+            backend (botdagi Prisma rol).
+          </li>
+          <li>
+            Keyin server <code className="rounded bg-black/35 px-1">/api/user-role</code> orqali Supabase{" "}
+            <code className="rounded bg-black/35 px-1">users</code> jadvali (
+            <code className="rounded bg-black/35 px-1">TELEGRAM_BOT_TOKEN</code> +{" "}
+            <code className="rounded bg-black/35 px-1">SUPABASE_SERVICE_ROLE_KEY</code> kerak).
+          </li>
+          <li>
+            Oxirgi variant: brauzer anon kalit (RLS qattiq bo‘lsa ishlamasligi mumkin). Sotuvchi/Admin
+            uchun Supabase da qator:{" "}
+            <code className="rounded bg-black/35 px-1">
+              insert into users (telegram_id, role) values (SIZNING_ID, &apos;seller&apos;);
+            </code>
+          </li>
+        </ul>
+      </div>
     </div>
   );
 }

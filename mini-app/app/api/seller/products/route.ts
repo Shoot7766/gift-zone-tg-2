@@ -28,6 +28,9 @@ export async function POST(req: Request) {
       shop_id,
       is_active,
       created_at,
+      product_type,
+      stock,
+      service_type,
       shops (
         id,
         name,

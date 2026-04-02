@@ -24,6 +24,7 @@ export default function SellerProductsClient() {
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState({ name: "", price: "", category: "", is_active: true });
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setErr(null);
@@ -80,12 +81,50 @@ export default function SellerProductsClient() {
     }
   };
 
+  const remove = async (productId: string) => {
+    if (!confirm("O‘chirishni tasdiqlaysizmi?")) return;
+    setDeleting(productId);
+    setErr(null);
+    try {
+      const res = await postJson("/api/seller/product-delete", { productId });
+      if (!res.ok) {
+        setErr("delete");
+        return;
+      }
+      await load();
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const toggleActive = async (p: ProductWithShop) => {
+    setSaving(true);
+    try {
+      const res = await postJson("/api/seller/product-patch", {
+        productId: p.id,
+        is_active: !p.is_active,
+      });
+      if (res.ok) await load();
+      else setErr("save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-4 pb-8">
       <Link href="/seller" className="text-xs text-gz-accent2">
         ← Sotuvchi paneli
       </Link>
-      <h1 className="text-xl font-black text-white">Mahsulotlar</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-xl font-black text-white">📦 Mahsulotlarim</h1>
+        <Link
+          href="/seller/add"
+          className="rounded-xl bg-gz-accent px-3 py-2 text-xs font-bold text-black shadow-lg shadow-emerald-900/30"
+        >
+          ➕ Qo‘shish
+        </Link>
+      </div>
 
       {loading ? <p className="text-sm text-gz-muted">Yuklanmoqda…</p> : null}
 
@@ -94,7 +133,7 @@ export default function SellerProductsClient() {
       ) : null}
 
       {err === "price" ? <p className="text-xs text-rose-300">Narx noto‘g‘ri.</p> : null}
-      {err === "load" || err === "save" ? (
+      {err === "load" || err === "save" || err === "delete" ? (
         <p className="text-xs text-rose-300">Xato. Qayta urinib ko‘ring.</p>
       ) : null}
 
@@ -104,7 +143,10 @@ export default function SellerProductsClient() {
 
       <div className="space-y-3">
         {products.map((p) => (
-          <div key={p.id} className="rounded-2xl border border-gz-border bg-gz-surface p-4">
+          <div
+            key={p.id}
+            className="rounded-2xl border border-white/[0.08] bg-gz-surface p-4 shadow-card"
+          >
             {editing === p.id ? (
               <div className="space-y-2">
                 <input
@@ -115,13 +157,11 @@ export default function SellerProductsClient() {
                 <input
                   value={draft.price}
                   onChange={(e) => setDraft((d) => ({ ...d, price: e.target.value }))}
-                  placeholder="Narx"
                   className="w-full rounded-xl border border-gz-border bg-gz-bg px-3 py-2 text-sm text-white"
                 />
                 <input
                   value={draft.category}
                   onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))}
-                  placeholder="Kategoriya"
                   className="w-full rounded-xl border border-gz-border bg-gz-bg px-3 py-2 text-sm text-white"
                 />
                 <label className="flex items-center gap-2 text-xs text-gz-muted">
@@ -132,8 +172,13 @@ export default function SellerProductsClient() {
                   />
                   Faol
                 </label>
-                <div className="flex gap-2">
-                  <Button type="button" className="text-xs" disabled={saving} onClick={() => void saveProduct(p.id)}>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    className="text-xs"
+                    disabled={saving}
+                    onClick={() => void saveProduct(p.id)}
+                  >
                     Saqlash
                   </Button>
                   <Button type="button" variant="ghost" className="text-xs" onClick={() => setEditing(null)}>
@@ -143,18 +188,58 @@ export default function SellerProductsClient() {
               </div>
             ) : (
               <>
-                <div className="flex justify-between gap-2">
-                  <div>
+                <div className="flex flex-wrap justify-between gap-2">
+                  <div className="min-w-0">
                     <p className="font-bold text-white">{p.name}</p>
                     <p className="text-xs text-gz-muted">{p.shops?.name ?? "Do‘kon"}</p>
                     <p className="text-sm font-semibold text-gz-accent">{formatPriceUZS(p.price)}</p>
-                    <p className="text-[10px] text-gz-muted">
-                      {p.is_active ? "Faol" : "O‘chirilgan"} · {p.category ?? "—"}
-                    </p>
+                    <div className="mt-1 flex flex-wrap gap-1 text-[10px] text-gz-muted">
+                      <span
+                        className={
+                          p.is_active ? "text-emerald-300" : "text-amber-200/90"
+                        }
+                      >
+                        {p.is_active ? "● Faol" : "○ O‘chirilgan"}
+                      </span>
+                      <span>·</span>
+                      <span>{p.product_type === "service" ? "🛎 Xizmat" : "📦 Mahsulot"}</span>
+                      {p.product_type === "product" && typeof p.stock === "number" ? (
+                        <>
+                          <span>·</span>
+                          <span>Ombor: {p.stock}</span>
+                        </>
+                      ) : null}
+                      {p.service_type ? (
+                        <>
+                          <span>·</span>
+                          <span>{p.service_type}</span>
+                        </>
+                      ) : null}
+                    </div>
                   </div>
-                  <Button type="button" variant="secondary" className="shrink-0 text-xs" onClick={() => startEdit(p)}>
-                    Tahrirlash
-                  </Button>
+                  <div className="flex shrink-0 flex-col gap-1">
+                    <Button type="button" variant="secondary" className="text-xs" onClick={() => startEdit(p)}>
+                      Tahrirlash
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="text-xs"
+                      disabled={saving}
+                      onClick={() => void toggleActive(p)}
+                    >
+                      {p.is_active ? "O‘chirish (faol)" : "Yoqish"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="text-xs text-rose-300"
+                      disabled={deleting === p.id}
+                      onClick={() => void remove(p.id)}
+                    >
+                      {deleting === p.id ? "…" : "O‘chirish"}
+                    </Button>
+                  </div>
                 </div>
               </>
             )}
@@ -164,8 +249,10 @@ export default function SellerProductsClient() {
 
       {!loading && products.length === 0 ? (
         <p className="text-sm text-gz-muted">
-          Mahsulot yo‘q. Yangisini Supabase <code className="rounded bg-white/10 px-1">products</code> orqali
-          qo‘shing yoki do‘konni ulang.
+          Hozircha mahsulot yo‘q.{" "}
+          <Link href="/seller/add" className="text-gz-accent2 underline">
+            Qo‘shish
+          </Link>
         </p>
       ) : null}
     </div>

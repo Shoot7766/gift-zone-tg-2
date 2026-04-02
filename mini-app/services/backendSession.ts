@@ -7,49 +7,53 @@ function apiBase(): string | null {
   return u || null;
 }
 
-/** Backend (Prisma) dagi rol — bot bilan bir xil manba */
+/** Backend (Prisma) dagi rol — bot bilan bir xil manba. Tarmoq xatosi → null. */
 export async function fetchRoleFromBackend(): Promise<UserRole | null> {
-  const base = apiBase();
-  if (!base || typeof window === "undefined") return null;
+  try {
+    const base = apiBase();
+    if (!base || typeof window === "undefined") return null;
 
-  const initData = window.Telegram?.WebApp?.initData ?? "";
-  if (!initData) return null;
+    const initData = window.Telegram?.WebApp?.initData ?? "";
+    if (!initData) return null;
 
-  let token = sessionStorage.getItem(GZ_JWT_STORAGE_KEY);
+    let token = sessionStorage.getItem(GZ_JWT_STORAGE_KEY);
 
-  if (token) {
-    const me = await fetch(`${base}/api/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (me.ok) {
-      const j = (await me.json()) as { user?: { role?: string } };
-      const r = j.user?.role;
-      if (r === "customer" || r === "seller" || r === "admin") return r;
+    if (token) {
+      const me = await fetch(`${base}/api/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (me.ok) {
+        const j = (await me.json()) as { user?: { role?: string } };
+        const r = j.user?.role;
+        if (r === "customer" || r === "seller" || r === "admin") return r;
+      }
+      sessionStorage.removeItem(GZ_JWT_STORAGE_KEY);
+      token = null;
     }
-    sessionStorage.removeItem(GZ_JWT_STORAGE_KEY);
-    token = null;
+
+    const authRes = await fetch(`${base}/api/auth/telegram`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ initData }),
+    });
+
+    if (!authRes.ok) return null;
+
+    const authJson = (await authRes.json()) as {
+      token?: string;
+      user?: { role?: string };
+    };
+
+    if (typeof authJson.token === "string") {
+      sessionStorage.setItem(GZ_JWT_STORAGE_KEY, authJson.token);
+    }
+
+    const r = authJson.user?.role;
+    if (r === "customer" || r === "seller" || r === "admin") return r;
+    return null;
+  } catch {
+    return null;
   }
-
-  const authRes = await fetch(`${base}/api/auth/telegram`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ initData }),
-  });
-
-  if (!authRes.ok) return null;
-
-  const authJson = (await authRes.json()) as {
-    token?: string;
-    user?: { role?: string };
-  };
-
-  if (typeof authJson.token === "string") {
-    sessionStorage.setItem(GZ_JWT_STORAGE_KEY, authJson.token);
-  }
-
-  const r = authJson.user?.role;
-  if (r === "customer" || r === "seller" || r === "admin") return r;
-  return null;
 }
 
 export function clearBackendSession(): void {

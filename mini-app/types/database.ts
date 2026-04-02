@@ -22,6 +22,8 @@ export type DbShop = {
   owner_telegram_username: string | null;
 };
 
+export type ProductKind = "product" | "service";
+
 export type DbProduct = {
   id: string;
   name: string;
@@ -32,6 +34,12 @@ export type DbProduct = {
   shop_id: string;
   is_active: boolean;
   created_at: string;
+  /** mahsulot yoki xizmat */
+  product_type?: ProductKind | null;
+  /** mahsulot uchun ombor; xizmatda odatda null */
+  stock?: number | null;
+  /** xizmat turi (masalan: yetkazib berish, dizayn) */
+  service_type?: string | null;
   is_featured?: boolean | null;
   badge?: "hot" | "star" | "top" | null;
 };

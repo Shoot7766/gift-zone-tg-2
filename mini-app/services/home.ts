@@ -14,7 +14,7 @@ export type HomeFeed = {
  */
 export async function fetchHomeFeed(client: SupabaseClient | null): Promise<HomeFeed> {
   const [pool, shops] = await Promise.all([
-    fetchProducts(client, { limit: 36 }),
+    fetchProducts(client, { limit: 32, sort: "featured" }),
     fetchApprovedShops(client, { limit: 8 }),
   ]);
   return { pool, shops };

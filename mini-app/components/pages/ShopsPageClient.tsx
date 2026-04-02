@@ -16,15 +16,19 @@ export default function ShopsPageClient() {
     queryKey: ["shops", sbKey],
     queryFn: () => fetchApprovedShops(supabase, { limit: 48 }),
     staleTime: 90_000,
+    gcTime: 240_000,
   });
 
   const list = q.data ?? [];
 
   return (
     <div className="space-y-5 pb-6">
-      <div>
+      <div className="relative overflow-hidden rounded-3xl border border-white/[0.07] bg-gradient-to-br from-sky-950/40 via-gz-surface to-emerald-950/30 p-5 shadow-[0_20px_50px_-24px_rgba(56,189,248,0.2)]">
+        <div className="pointer-events-none absolute -right-8 top-0 h-32 w-32 rounded-full bg-sky-400/10 blur-3xl" />
         <h1 className="text-xl font-black tracking-tight text-white">Do‘konlar</h1>
-        <p className="mt-1 text-sm text-gz-muted">Tasdiqlangan va ishonchli sotuvchilar.</p>
+        <p className="mt-2 text-sm leading-relaxed text-gz-muted">
+          Tasdiqlangan va ishonchli sotuvchilar. VIP va TOP belgilari bilan ajralib turadi.
+        </p>
       </div>
       <Link href="/" className="text-xs font-semibold text-gz-accent2">
         ← Bosh sahifa
