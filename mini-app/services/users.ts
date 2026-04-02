@@ -1,6 +1,19 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DbUser, UserRole } from "@/types/database";
 
+/** Bir nechta manbadan eng keng huquqli rol (admin > seller > customer). */
+export function mergeHighestUserRole(
+  ...roles: (UserRole | null | undefined)[]
+): UserRole {
+  let best: UserRole = "customer";
+  for (const r of roles) {
+    if (r !== "customer" && r !== "seller" && r !== "admin") continue;
+    if (r === "admin") return "admin";
+    if (r === "seller") best = "seller";
+  }
+  return best;
+}
+
 export async function fetchUserRoleByTelegramId(
   client: SupabaseClient | null,
   telegramId: number
